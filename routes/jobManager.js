@@ -13,8 +13,16 @@ const pool = new Pool({
 
 router.post("/save", auth.verifyToken, async function (req, res, next) {
   try {
-    let { username, email, password } = req.body;
-    console.log(req.body);
+    // console.log(req.body);
+    let jobs = req.body.jobs;
+    for (let i = 0; i < jobs.length; i++) {
+      const elm = jobs[i];
+
+      let query = `INSERT INTO job_details
+      VALUES(${elm.id}, '${elm.machine}', '${elm.jobName}', '${elm.operatorName}', '[${elm.startTime},${elm.endTime})', ${elm.targetQty}, ${elm.actualQty}, '${elm.remarks}', '${elm.updatedBy}')
+      ON CONFLICT(id) DO UPDATE SET machine = EXCLUDED.machine, job_name = EXCLUDED.job_name, operator_name = EXCLUDED.operator_name, shift = EXCLUDED.shift, target_qty = EXCLUDED.target_qty, actual_qty = EXCLUDED.actual_qty, remarks = EXCLUDED.remarks, updatedby = EXCLUDED.updatedby`;
+      let res = await pool.query(query);
+    }
   } catch (error) {
     res.send({ status: 0, error: error });
   }
@@ -23,25 +31,28 @@ router.post("/save", auth.verifyToken, async function (req, res, next) {
 router.get("/get", auth.verifyToken, async (req, res, next) => {
   try {
     const query = `Select * FROM job_details`;
-    let temp = {
+    let resData = {
       jobs: []
     }
     const result = await pool.query(query);
-    console.log(result, 'temp');
+    console.log(result, 'resData');
     if (result?.rows?.length > 0) {
       result.rows.forEach(element => {
-        temp.jobs.push({
-          deviceId: element.device,
-          jobName: element.job,
-          expectedOp: element.expected,
-          actualOp: element.actual,
-          startTime: '',
-          endTime: '',
-          operatorName: element.operator
+        let timeObj = JSON.parse(element.shift.replace(/\)$/,"]"));
+        resData.jobs.push({
+          id: element.id,
+          machine: element.machine,
+          jobName: element.job_name,
+          targetQty: element.target_qty,
+          actualQty: element.actual_qty,
+          startTime: timeObj.length > 0 ? timeObj[0] : '',
+          endTime: timeObj.length > 0 ? timeObj[1] : '',
+          operatorName: element.operator_name,
+          remarks: element.remarks
         });
       }); 
     }
-    res.send({ status: 1, data: temp });
+    res.send({ status: 1, data: resData });
 
   } catch (error) {
     res.send({ status: 0, error: error });
