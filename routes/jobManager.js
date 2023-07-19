@@ -3,13 +3,24 @@ const router = express.Router();
 const auth = require("../middleware/auth");
 
 const Pool = require("pg").Pool;
+
+// Below config for docker
 const pool = new Pool({
   user: "postgres",
-  host: "localhost",
+  host: "timescaledb",
   database: "nikola",
   password: "password",
-  port: 5436,
+  port: 5432,
 });
+
+// Below config for localhost
+// const pool = new Pool({
+//   user: "postgres",
+//   host: "localhost",
+//   database: "nikola",
+//   password: "password",
+//   port: 5436,
+// });
 
 router.post("/save", auth.verifyToken, async function (req, res, next) {
   try {
@@ -23,6 +34,7 @@ router.post("/save", auth.verifyToken, async function (req, res, next) {
       ON CONFLICT(id) DO UPDATE SET machine = EXCLUDED.machine, job_name = EXCLUDED.job_name, operator_name = EXCLUDED.operator_name, shift = EXCLUDED.shift, target_qty = EXCLUDED.target_qty, actual_qty = EXCLUDED.actual_qty, remarks = EXCLUDED.remarks, updatedby = EXCLUDED.updatedby`;
       let res = await pool.query(query);
     }
+    res.send({ status: 1 });
   } catch (error) {
     res.send({ status: 0, error: error });
   }

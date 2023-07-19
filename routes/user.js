@@ -4,13 +4,24 @@ const md5 = require("md5");
 const jwt = require("jsonwebtoken");
 
 const Pool = require("pg").Pool;
+
+// Below config for docker
 const pool = new Pool({
   user: "postgres",
-  host: "localhost",
+  host: "timescaledb",
   database: "nikola",
   password: "password",
-  port: 5436,
+  port: 5432,
 });
+
+// Below config for localhost
+// const pool = new Pool({
+//   user: "postgres",
+//   host: "localhost",
+//   database: "nikola",
+//   password: "password",
+//   port: 5436,
+// });
 
 router.post("/register", async function (req, res, next) {
   try {
@@ -27,7 +38,7 @@ router.post("/register", async function (req, res, next) {
     const createUser = (hashed_password) => {
       pool.query(
         "INSERT INTO users (id, username, email, password, created_on) VALUES ((SELECT MAX(id)+1 FROM public.users), $1, $2, $3, $4) RETURNING *",
-        [username, hashed_password, email, new Date()],
+        [username, email, hashed_password, new Date()],
         (error, results) => {
           if (error) {
             throw error;
